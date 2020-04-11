@@ -1,0 +1,3 @@
+*envname
+__pycache__/
+*.DS_store
