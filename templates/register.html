@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+
+<h2 class="m-2"> Welcome to Bookreads</h2>
+<h5 class="m-2"> A bookclub website, where users can search rate and review books. </h5>
+
+<div class="m-5"> </div>
+<h3 class="m-2"> Register for an account and try it out: </h3>
+
+<form action="/register" method="post" class="m-2">
+        <div class="form-group">
+            <h5>Enter a Username 
+            <input id="username" autocomplete="off" autofocus class="form-control" name="username" placeholder="Username" type="text">
+            </h5>
+        </div>
+        <div class="form-group">
+            <h5>Enter a Password 
+            <input id="password" class="form-control" name="password" placeholder="Password" type="password">
+            </h5>
+        </div>
+
+        <div class="form-group">
+            <h5>Confirm Password 
+            <input id="confirmation" class="form-control" name="confirmation" placeholder="Password" type="password">
+            </h5>
+        </div>
+        <p class="m-2 small text-muted">
+            Please make note of your username and password to log back in. <br>
+            Passwords are not stored in plain text so I cannot recover it for you.
+        </p>
+
+        <button id="submit" class="btn btn-primary" type="submit" disabled >Register</button>
+    </form>
+
+    <div class="m-5"> </div>
+
+    <h4 class="m-3"> Already have an account? <a href="login">Login Here </a> </h4>
+
+    <script>
+        document.querySelector('#username').onkeyup = function() {
+        if (document.querySelector('#username').value === '') {
+            document.querySelector('#submit').disabled = true;
+        }
+        else {
+            document.querySelector('#submit').disabled = false;
+        }
+    }
+
+        document.querySelector('#password').onkeyup = function() {
+        if (document.querySelector('#password').value === '') {
+            document.querySelector('#submit').disabled = true;
+        }
+        else {
+            document.querySelector('#submit').disabled = false;
+        }
+
+    }
+        document.querySelector('#confirmation').onkeyup = function() {
+        if (document.querySelector('#confirmation').value === '') {
+            document.querySelector('#submit').disabled = true;
+        }
+        else {
+            document.querySelector('#submit').disabled = false;
+        }
+    }
+    </script>
+
+{% endblock %}

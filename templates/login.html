@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Log In
+{% endblock %}
+
+{% block main %}
+
+<h2 class="m-2"> Welcome to Bookreads</h2>
+<h5 class="m-2"> A bookclub website, where users can search, rate and review books. </h5>
+<div class="m-5"> </div>
+ 
+{% if account %}
+<h4> {{ account }} </h4>
+{% endif %}
+<form action="/login" method="post" class="m-2" >
+    <div class="form-group">
+        <h5>Username
+            <input autocomplete="off" id="username" autofocus class="form-control" name="username"
+                placeholder="Username" type="text"> </h5>
+    </div>
+    <div class="form-group">
+        <h5>Password
+            <input class="form-control" id="password" name="password" placeholder="Password" type="password"> </h5>
+    </div>
+
+    <p class="m-2 small text-muted">
+        Please make note of your username and password to log back in. <br>
+        Passwords are not stored in plain text so I cannot recover
+        it for you.
+    </p>
+
+    <button class="btn btn-primary" id="submit" type="submit" disabled>Log In</button>
+</form>
+
+<div class="m-5"> </div>
+
+<h4 class="m-3"> Don't have an account? <a href="register">Register Here </a> </h4>
+
+
+<script>
+    document.querySelector('#username').onkeyup = function () {
+        if (document.querySelector('#username').value === '') {
+            document.querySelector('#submit').disabled = true;
+        }
+        else {
+            document.querySelector('#submit').disabled = false;
+        }
+    }
+
+    document.querySelector('#password').onkeyup = function () {
+        if (document.querySelector('#password').value === '') {
+            document.querySelector('#submit').disabled = true;
+        }
+        else {
+            document.querySelector('#submit').disabled = false;
+        }
+
+    }
+
+</script>
+{% endblock %}

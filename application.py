@@ -1,9 +1,11 @@
 import os
-
-from flask import Flask, session
+import requests
+from functools import wraps
+from flask import Flask, session, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 
@@ -20,7 +22,144 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
+# Goodreads API key and secret
+# key: DchANaDeTrPFG7BRpUBZIw
+# secret: t5VRb1Uf3nJXZeb489i5Y4HkIuADwEV0nEtbjcxhnd4
+# res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": "9781632168146"})
+# print(res.json())
+
+
+# SELECT * FROM "books" WHERE "author" ILIKE '%Lloyd%' ORDER BY "title"
+# SELECT * FROM "books" WHERE("isbn" ILIKE '%shakespeare%' OR "title" ILIKE '%shakespeare%' OR "author" ILIKE '%shakespeare%' OR "year" ILIKE '%shakespeare%') ORDER BY "title" 
+# SELECT * FROM "books" WHERE("isbn" ILIKE '%shakespeare%' OR "title" ILIKE '%shakespeare%' OR "author" ILIKE '%shakespeare%' OR "year" ILIKE '%shakespeare%') ORDER BY "year" DESC
+
+
+def login_required(f):
+    """
+    Decorate routes to require login.
+
+    http://flask.pocoo.org/docs/1.0/patterns/viewdecorators/
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("user_id") is None:
+            return redirect("/register")
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def apology(message, code=400):
+    """Render message as an apology to user."""
+    def escape(s):
+        """
+        Escape special characters.
+
+        https://github.com/jacebrowning/memegen#special-characters
+        """
+        for old, new in [("-", "--"), (" ", "-"), ("_", "__"), ("?", "~q"),
+                         ("%", "~p"), ("#", "~h"), ("/", "~s"), ("\"", "''")]:
+            s = s.replace(old, new)
+        return s
+    return render_template("apology.html", top=code, bottom=escape(message)), code
+
 
 @app.route("/")
+@login_required
 def index():
-    return "Project 1: TODO"
+
+    user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
+    return render_template('index.html', user=user)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Register user"""
+
+    # User reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+
+        username = request.form.get("username")
+
+        # Ensure username was submitted
+        if not username:
+            return apology("must provide username", 403)
+
+        # Ensure password was submitted
+        elif not request.form.get("password"):
+            return apology("must provide password", 403)
+
+        # Ensure passwords match
+        elif request.form.get("password") != request.form.get("confirmation"):
+            return apology("passwords do not match", 403)
+
+        # Query database for username
+        check = db.execute("SELECT * FROM users WHERE username = :username", {"username":username}).fetchall()
+
+        # Ensure username exists and password is correct
+        if len(check) != 0:
+            return apology("that username is taken", 403)
+
+        # Hash pw
+        hash = generate_password_hash(request.form.get(
+            "password"), method='pbkdf2:sha256', salt_length=8)
+
+        # Add new user to db
+        db.execute("INSERT INTO users (username, hash) VALUES (:username, :hash)", {"username":username, "hash":hash})
+        db.commit()
+
+        # Redirect user to login
+        return render_template("login.html", account="Great, your account was created.")
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """Log user in"""
+
+    # Forget any user_id
+    session.clear()
+
+    # User reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+
+        username = request.form.get("username")
+        
+        # Ensure username was submitted
+        if not request.form.get("username"):
+            return apology("must provide username", 403)
+
+        # Ensure password was submitted
+        elif not request.form.get("password"):
+            return apology("must provide password", 403)
+
+        # Query database for username
+        rows = db.execute("SELECT * FROM users WHERE username = :username", {"username":username}).fetchall()
+
+        # Ensure username exists and password is correct
+        if not rows or not check_password_hash(rows[0]["hash"], request.form.get("password")):
+            return apology("invalid username and/or password", 403)
+
+        # Remember which user has logged in
+        session["user_id"] = rows[0]["id"]
+        
+        # Redirect user to home page
+        return redirect("/")
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    """Log user out"""
+
+    # Forget any user_id
+    session.clear()
+
+    # Redirect user to login form
+    return redirect("/")
+
