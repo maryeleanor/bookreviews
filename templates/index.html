@@ -4,7 +4,19 @@
 {% endblock %}
 
 {% block main %}
+ 
+<p>
+    Welcome {{ username }}
+</p>
 
-{{ user }}
+<form action="/search" method="post" class="m-2">
+    <div class="form-group">
+        <h4>Search for a book </h4>
+            <input autocomplete="off" id="book" autofocus class="form-control" name="book"
+                placeholder=" Title, Author, ISBN " type="text"> 
+            <button class="btn btn-primary" id="submit" type="submit" disabled>Search</button>
+    </div>
+</form>
+ 
 
 {% endblock %}

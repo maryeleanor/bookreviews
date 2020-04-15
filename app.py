@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 app = Flask(__name__)
 
 # Check for environment variable
+# db URI postgres://gxorncbjrcfvfb:4d8d52cccd8f9632ef389a6aedf4cd530dc683f5de08abff236c3c82af0089d8@ec2-34-193-232-231.compute-1.amazonaws.com:5432/d7v3iiv0ofav9c
 if not os.getenv("DATABASE_URL"):
     raise RuntimeError("DATABASE_URL is not set")
 
@@ -68,7 +69,8 @@ def apology(message, code=400):
 def index():
 
     user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
-    return render_template('index.html', user=user)
+    username = user[0].username.capitalize()
+    return render_template('index.html', username=username)
 
 
 @app.route("/register", methods=["GET", "POST"])
