@@ -30,11 +30,6 @@ db = scoped_session(sessionmaker(bind=engine))
 # print(res.json())
 
 
-# SELECT * FROM "books" WHERE "author" ILIKE '%Lloyd%' ORDER BY "title"
-# SELECT * FROM "books" WHERE("isbn" ILIKE '%shakespeare%' OR "title" ILIKE '%shakespeare%' OR "author" ILIKE '%shakespeare%' OR "year" ILIKE '%shakespeare%') ORDER BY "title" 
-# SELECT * FROM "books" WHERE("isbn" ILIKE '%shakespeare%' OR "title" ILIKE '%shakespeare%' OR "author" ILIKE '%shakespeare%' OR "year" ILIKE '%shakespeare%') ORDER BY "year" DESC
-
-
 def login_required(f):
     """
     Decorate routes to require login.
@@ -64,13 +59,20 @@ def apology(message, code=400):
     return render_template("apology.html", top=code, bottom=escape(message)), code
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
+    if request.method == "POST":
+        book = request.form.get("book") 
+        search = "%{}%".format(book)
+        books = db.execute(
+            "SELECT * FROM books WHERE isbn ILIKE :book OR title ILIKE :book OR author ILIKE :book ORDER BY year DESC", {"book":search}).fetchall()
+        return render_template('index.html', books=books)
 
-    user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
-    username = user[0].username.capitalize()
-    return render_template('index.html', username=username)
+    else:
+        user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
+        username = user[0].username.capitalize()
+        return render_template('index.html', username=username)
 
 
 @app.route("/register", methods=["GET", "POST"])

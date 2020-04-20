@@ -4,19 +4,28 @@
 {% endblock %}
 
 {% block main %}
- 
-<p>
-    Welcome {{ username }}
-</p>
+  
 
-<form action="/search" method="post" class="m-2">
+<form action="/" method="post" class="m-2">
     <div class="form-group">
         <h4>Search for a book </h4>
-            <input autocomplete="off" id="book" autofocus class="form-control" name="book"
+            <input autocomplete="off" id="book" autofocus class="form-control m-2" name="book"
                 placeholder=" Title, Author, ISBN " type="text"> 
-            <button class="btn btn-primary" id="submit" type="submit" disabled>Search</button>
+            <button class="btn btn-primary" id="submit" type="submit">Search</button>
     </div>
-</form>
- 
+</form> 
+
+<div class="m-3"> </div>
+
+{% if request.method == "POST" %}
+<ul>
+{% for book in books %}
+    <li><h4> {{ book.title  }} </h4></li>
+    <li>by: {{ book.author }} </li>
+    <li> {{ book.year }} </li>
+    <li> {{ book.isbn }} </li>  
+{% endfor %}    
+</ul>
+{% endif %}
 
 {% endblock %}
