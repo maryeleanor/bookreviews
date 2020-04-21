@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 from functools import wraps
 from flask import Flask, session, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
@@ -26,8 +27,7 @@ db = scoped_session(sessionmaker(bind=engine))
 # Goodreads API key and secret
 # key: DchANaDeTrPFG7BRpUBZIw
 # secret: t5VRb1Uf3nJXZeb489i5Y4HkIuADwEV0nEtbjcxhnd4
-# res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": "9781632168146"})
-# print(res.json())
+
 
 
 def login_required(f):
@@ -67,7 +67,19 @@ def index():
         search = "%{}%".format(book)
         books = db.execute(
             "SELECT * FROM books WHERE isbn ILIKE :book OR title ILIKE :book OR author ILIKE :book ORDER BY year DESC", {"book":search}).fetchall()
-        return render_template('index.html', books=books)
+        # books.append({'ratings_count':''})  
+        # books.append({'reviews_count': ''})
+        # books.append({'average_rating': ''})
+        for book in books:
+            isbn = book.isbn
+            res = requests.get("https://www.goodreads.com/book/review_counts.json",
+                           params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": isbn})
+            json_result=res.json() 
+            goodreads = json_result['books']
+            # book.ratings_count = goodreads['ratings_count']
+            # book.reviews_count = goodreads['reviews_count']
+            # book.average_ratings = goodreads['average_ratings']
+        return render_template('index.html', books=books, goodreads=goodreads)
 
     else:
         user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()

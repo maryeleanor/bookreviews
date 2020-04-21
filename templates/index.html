@@ -15,17 +15,24 @@
     </div>
 </form> 
 
-<div class="m-3"> </div>
+<div class="m-5"> </div> 
 
+{{ books }}  <br><br>
+{{ goodreads }}
 {% if request.method == "POST" %}
-<ul>
-{% for book in books %}
-    <li><h4> {{ book.title  }} </h4></li>
-    <li>by: {{ book.author }} </li>
-    <li> {{ book.year }} </li>
-    <li> {{ book.isbn }} </li>  
-{% endfor %}    
-</ul>
+    {% for book in books %} 
+        <div class="card bg-light mb-3">
+            <div class="card-header"><h4>{{ book.title  }}</h4> {{ book.average_rating }} </div>
+            <div class="card-body">
+                <h5 class="card-title">by: {{ book.author }}</h5>
+                <p class="card-text">Published: {{ book.year }} </p> 
+                <p>ISBN:{{ book.isbn }}</p>
+                <p>Ratings: {{ book.ratings_count }} Reviews: {{ book.review_count }}</p>
+            </div>
+        </div>
+
+        <div class="m-2"> </div>
+    {% endfor %}     
 {% endif %}
 
 {% endblock %}
