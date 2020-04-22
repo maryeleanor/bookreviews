@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+
+{% block title %}
+{% endblock %}
+
+{% block main %}
+ 
+<div class="m-5"> </div>
+ 
+  
+<div class="card bg-light mb-3">
+    <div class="card-header"> 
+            <h4>{{ book.title  }}</h4> 
+
+            <h5 class="card-title">by: {{ book.author }}</h5>
+        
+    
+</div>
+    <div class="card-body">
+        <div class="progress">
+            <div class="progress-bar bg-info" role="progressbar" style="width:{{ rating }}%" aria-valuenow="{{ rating }}" aria-valuemin="0"
+                aria-valuemax="100"></div>
+        </div>
+        <span class="right"> Current Rating on Goodreads: {{ goodreads_book[0]['average_rating'] }} out of 5 </span>
+        
+        <br> <br>
+        <p class="card-text">Published: {{ book.year }} <br>
+            ISBN:{{ book.isbn }}</p>
+        <p>Number of ratings on goodreads: {{ goodreads_book[0]['work_ratings_count'] }}&nbsp;&nbsp;&nbsp; Number of reviews on goodreads: {{ goodreads_book[0]['work_reviews_count'] }}</p>
+    </div>
+</div>
+
+{% if reviews is defined %}
+<div class="m-5"> </div> 
+<h4> Reviews of {{ book.title }} </h4>
+{% for review in reviews %}
+<p>
+    {{ review.review }}
+</p>
+<p>
+   Rating {{ review.rating }}
+</p> 
+<p>
+    by: {{ username }}
+</p>
+{% endfor %}
+{% endif %}
+
+<div class="m-5"> </div>
+<form action="{{ url_for('book', book_id=book.id) }}" method="post" class="m-2">
+    <div class="form-group">
+        <h4>Add your own rating or review for {{ book.title }} </h4>
+        <br>
+        <p style="display:inline"> Rating </p> &nbsp;
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio1" value="1">
+            <label class="form-check-label" for="inlineRadio1">1</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio2" value="2">
+            <label class="form-check-label" for="inlineRadio2">2</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio3" value="3">
+            <label class="form-check-label" for="inlineRadio3">3</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio4" value="4" >
+            <label class="form-check-label" for="inlineRadio4">4</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio5" value="5" >
+            <label class="form-check-label" for="inlineRadio5">5</label>
+        </div>
+
+        <div class="mb-3">
+            <br><br>
+            <label for="review">Review</label>  <br>
+            <textarea class="form-control" id="review" name="review" placeholder="Your review of {{ book.title }}"></textarea>
+            <div class="invalid-feedback">
+                Please enter a message in the textarea.
+            </div>
+        </div>
+        <button class="btn btn-primary" id="submit" type="submit">Submit</button>
+    </div>
+</form>
+
+
+{% endblock %}

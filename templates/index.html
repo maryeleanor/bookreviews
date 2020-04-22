@@ -10,24 +10,25 @@
     <div class="form-group">
         <h4>Search for a book </h4>
             <input autocomplete="off" id="book" autofocus class="form-control m-2" name="book"
-                placeholder=" Title, Author, ISBN " type="text"> 
+                placeholder=" Title, Author, or ISBN " type="text"> 
             <button class="btn btn-primary" id="submit" type="submit">Search</button>
     </div>
 </form> 
 
 <div class="m-5"> </div> 
-
-{{ books }}  <br><br>
-{{ goodreads }}
+<div class="m-5">
+    <h4> {{ no_match }} </h4>
+</div>
+ 
 {% if request.method == "POST" %}
-    {% for book in books %} 
+    {% for book,item in books_result %} 
         <div class="card bg-light mb-3">
-            <div class="card-header"><h4>{{ book.title  }}</h4> {{ book.average_rating }} </div>
+            <div class="card-header"><a href="{{ url_for('book', book_id=book.id, books_result=books_result) }}"> <h4 style="display:inline;">{{ book.title  }}</h4></a> {{ item[0]['average_rating'] }} </div>
             <div class="card-body">
                 <h5 class="card-title">by: {{ book.author }}</h5>
                 <p class="card-text">Published: {{ book.year }} </p> 
                 <p>ISBN:{{ book.isbn }}</p>
-                <p>Ratings: {{ book.ratings_count }} Reviews: {{ book.review_count }}</p>
+                <p>Ratings: {{ item[0]['work_ratings_count'] }}  Reviews: {{ item[0]['work_reviews_count'] }}</p>
             </div>
         </div>
 
