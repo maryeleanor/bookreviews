@@ -18,12 +18,12 @@
 <div class="m-5"> </div> 
 <div class="m-5">
     <h4> {{ no_match }} </h4>
-</div>
- 
+</div> 
+
 {% if request.method == "POST" %}
     {% for book,item in books_result %} 
         <div class="card bg-light mb-3">
-            <div class="card-header"><a href="{{ url_for('book', book_id=book.id, books_result=books_result) }}"> <h4 style="display:inline;">{{ book.title  }}</h4></a> {{ item[0]['average_rating'] }} </div>
+            <div class="card-header"><a href="{{ url_for('book', book_id=book.id) }}"> <h4 style="display:inline;">{{ book.title  }}</h4></a> {{ item[0]['average_rating'] }} </div>
             <div class="card-body">
                 <h5 class="card-title">by: {{ book.author }}</h5>
                 <p class="card-text">Published: {{ book.year }} </p> 

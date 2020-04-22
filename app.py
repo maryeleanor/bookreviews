@@ -29,7 +29,6 @@ db = scoped_session(sessionmaker(bind=engine))
 # secret: t5VRb1Uf3nJXZeb489i5Y4HkIuADwEV0nEtbjcxhnd4
 
 
-
 def login_required(f):
     """
     Decorate routes to require login.
@@ -61,21 +60,23 @@ def apology(message, code=400):
 
 def search(book):
     book = "%{}%".format(book)
-    books = db.execute("SELECT * FROM books WHERE isbn ILIKE :book OR title ILIKE :book OR author ILIKE :book ORDER BY year DESC", {"book": book}).fetchall()
-    if not books:
-        no_match = "Sorry, no books found. Try another search"
-        return render_template('index.html', no_match=no_match)
-    goodreads = []
+    books = db.execute("SELECT * FROM books WHERE isbn ILIKE :book OR title ILIKE :book OR author ILIKE :book ORDER BY year DESC", {
+        "book": book}).fetchall()
 
+    if not books:
+        books_result = None
+        return books_result
+
+    goodreads = []
     for book in books:
-            isbn = book.isbn
             res = requests.get("https://www.goodreads.com/book/review_counts.json",
-                           params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": isbn})
+                               params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": book.isbn})
             result = res.json()
             goodreads.append(result['books'])
 
     books_result = zip(books, goodreads)
     return books_result
+
 
 def book_reviews(book_id):
     book = db.execute(
@@ -90,9 +91,8 @@ def book_reviews(book_id):
                       {"id": session["user_id"]}).fetchone()
     username = user.username.capitalize()
 
-    isbn = book.isbn
     res = requests.get("https://www.goodreads.com/book/review_counts.json",
-                       params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": isbn})
+                       params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": book.isbn})
     result = res.json()
     goodreads_book = result['books']
     ratings = (float(goodreads_book[0]['average_rating'])/5) * 100
@@ -102,18 +102,30 @@ def book_reviews(book_id):
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
+    # if user clicked search
     if request.method == "POST":
         book = request.form.get("book") 
 
+        # was a search term entered? 
         if not book:
             return apology("must provide a book to search for", 404)
 
+        # query db and goodreads for search term
         books_result = search(book)
+
+        # if no result, return no match
+        if not books_result:
+            no_match = "Sorry, no books found. Try another search"
+            return render_template('index.html', no_match=no_match)
+
+        # otherwise display results
         return render_template('index.html', books_result=books_result)
 
     else:
-        user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
-        username = user[0].username.capitalize()
+        # user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
+        # username = user[0].username.capitalize()
+
+        # render search homepage
         return render_template('index.html')
 
 
@@ -127,55 +139,58 @@ def book(book_id):
         if not review and not rating:
             return apology("you didn't provide a rating or review", 404)
 
+        # check if user has already reviewed this book, if so send them to update review
+        review = db.execute("SELECT * FROM reviews WHERE user_id = :user_id", {
+            "user_id": session["user_id"]}).fetchone()
+        if review:
+            update = "You've already submitted a review. Want to update it?"
+            return redirect(url_for('review', review_id=review.id, update=update))
+
+        # otherwise submit review into db
         db.execute("INSERT INTO reviews (review, rating, book_id, user_id) VALUES (:review, :rating, :book_id, :user_id)", {
                    "review": review, "rating": rating, "book_id": book_id, "user_id": session["user_id"]})
         db.commit()
 
+        # then query db for this book's details and render page        
         book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
         return render_template('book.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
 
     else:
+        # query db for this book's details and render page
         book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
         return render_template('book.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
 
 
 @app.route('/review/<int:review_id>', methods=['GET', 'POST'])
 def review(review_id):
-    #  review = review.query.get_or_404(review_id)
-    return render_template('review.html', title=review.title, review=review)
+    reviews = db.execute("SELECT * FROM reviews WHERE id = :review_id", {
+        "review_id": review_id}).fetchall()
+    review = reviews[0]
+    book_id = review.book_id
 
+    if request.method == "POST":
+        if request.form['action'] == 'delete':
+            db.execute("DELETE FROM reviews WHERE id = review_id", {
+                "review_id": review_id})
+            db.commit()
+        
+        if request.form['action'] == 'submit':
+            review = request.form.get("review")
+            if request.form['options']:
+                rating = int(request.form['options'])
+            
+            db.execute("UPDATE reviews (review, rating) WHERE id = review_id VALUES (:review, :rating, :review_id)", {
+                    "review": review, "rating": rating, "review_id": review_id})
+            db.commit()
 
-@app.route('/review/<int:review_id>/update', methods=['GET', 'POST'])
-@login_required
-def update_review(review_id):
-    review = review.query.get_or_404(review_id)
-    if review.author != current_user:
-        abort(403)
-    form = reviewForm()
-    if form.validate_on_submit():
-        review.title = form.title.data
-        review.content = form.content.data
-        db.session.commit()
-        flash('Your review has been updated.', 'success')
-        return redirect(url_for('reviews.review', review_id=review.id))
-    elif request.method == 'GET':
-        form.title.data = review.title
-        form.content.data = review.content
-    return render_template('create_review.html', title='Update review',
-                           form=form, legend='Update review')
+        # query db for this book's details and render page
+        book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
+        return render_template('book.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
 
-
-@app.route('/review/<int:review_id>/delete', methods=['POST'])
-@login_required
-def delete_review(review_id):
-    review = review.query.get_or_404(review_id)
-    if review.author != current_user:
-        abort(403)
-    db.session.delete(review)
-    db.session.commit()
-    flash('Your review has been deleted.', 'danger')
-    return redirect(url_for('main.home'))
-
+    else:
+        # query db for this book's details and render page
+        book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
+        return render_template('review.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
 
 
 
@@ -183,7 +198,7 @@ def delete_review(review_id):
 def register():
     """Register user"""
 
-    # User reached route via POST (as by submitting a form via POST)
+    # if user submited a form via POST)
     if request.method == "POST":
 
         username = request.form.get("username")
@@ -203,7 +218,7 @@ def register():
         # Query database for username
         check = db.execute("SELECT * FROM users WHERE username = :username", {"username":username}).fetchall()
 
-        # Ensure username exists and password is correct
+        # Ensure username is not taken 
         if len(check) != 0:
             return apology("that username is taken", 403)
 
@@ -230,7 +245,6 @@ def login():
     # Forget any user_id
     session.clear()
 
-    # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
         username = request.form.get("username")

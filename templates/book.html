@@ -10,7 +10,7 @@
   
 <div class="card bg-light mb-3">
     <div class="card-header"> 
-            <h4>{{ book.title  }}</h4> 
+            <a href="{{ url_for('book', book_id=book.id) }}"> <h4 style="display:inline;">{{ book.title  }}</h4></a> 
 
             <h5 class="card-title">by: {{ book.author }}</h5>
         
@@ -18,7 +18,7 @@
 </div>
     <div class="card-body">
         <div class="progress">
-            <div class="progress-bar bg-info" role="progressbar" style="width:{{ rating }}%" aria-valuenow="{{ rating }}" aria-valuemin="0"
+            <div class="progress-bar bg-warning" role="progressbar" style="width:{{ ratings }}%" aria-valuenow="{{ ratings }}" aria-valuemin="0"
                 aria-valuemax="100"></div>
         </div>
         <span class="right"> Current Rating on Goodreads: {{ goodreads_book[0]['average_rating'] }} out of 5 </span>
@@ -31,23 +31,33 @@
 </div>
 
 {% if reviews is defined %}
-<div class="m-5"> </div> 
-<h4> Reviews of {{ book.title }} </h4>
-{% for review in reviews %}
-<p>
-    {{ review.review }}
-</p>
-<p>
-   Rating {{ review.rating }}
-</p> 
-<p>
-    by: {{ username }}
-</p>
-{% endfor %}
+
+    <div class="m-5"> </div> 
+
+    <div class="ml-3">
+        <h4> Reviews of {{ book.title }} </h4>
+    </div>
+
+        {% for review in reviews %}
+
+        <div class="m-3">
+
+        <p> <a href="{{ url_for('review',review_id=review.id) }}">  {{ review.id }} </a>  {{ review.review }} </p>
+        <p> Rating: {{ review.rating }} out of 5 
+        <br> by: {{ username }} </p>
+        
+        </div>
+        <div class="m-3"> </div>
+
+        {% endfor %}
+
+    <div class="m-5"> </div>
+
 {% endif %}
 
 <div class="m-5"> </div>
-<form action="{{ url_for('book', book_id=book.id) }}" method="post" class="m-2">
+
+<form action="{{ url_for('book', book_id=book.id) }}" method="post" class="m-3">
     <div class="form-group">
         <h4>Add your own rating or review for {{ book.title }} </h4>
         <br>

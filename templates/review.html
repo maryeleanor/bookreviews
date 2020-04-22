@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}
+{% endblock %}
+
+{% block main %}
+
+<div class="card bg-light mb-3">
+    <div class="card-header">
+       <a href="{{ url_for('book', book_id=book.id) }}"> <h4 style="display:inline;">{{ book.title  }}</h4></a>
+        <h5 class="card-title">by: {{ book.author }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="progress">
+            <div class="progress-bar bg-warning" role="progressbar" style="width:{{ ratings }}%"
+                aria-valuenow="{{ ratings }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <span class="right"> Current Rating on Goodreads: {{ goodreads_book[0]['average_rating'] }} out of 5 </span>
+
+        <br> <br>
+        <p class="card-text">Published: {{ book.year }} <br>
+            ISBN:{{ book.isbn }}</p>
+        <p>Number of ratings on goodreads: {{ goodreads_book[0]['work_ratings_count'] }}&nbsp;&nbsp;&nbsp; Number of
+            reviews on goodreads: {{ goodreads_book[0]['work_reviews_count'] }}</p>
+    </div>
+</div>
+  
+<div class="m-5"> </div>
+
+{% if update %}
+{{ update }}
+{% for review in reviews %}
+
+<form action="{{ url_for('review', review_id=review.id) }}" method="post" class="m-2">
+    <div class="form-group">
+        <h4> Update your review of {{ book.title }} </h4>
+        <div class="mt-3">
+        <p style="display:inline"> Rating </p> &nbsp;
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio1" value="1">
+            <label class="form-check-label" for="inlineRadio1">1</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio2" value="2">
+            <label class="form-check-label" for="inlineRadio2">2</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio3" value="3">
+            <label class="form-check-label" for="inlineRadio3">3</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio4" value="4">
+            <label class="form-check-label" for="inlineRadio4">4</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="options" id="inlineRadio5" value="5">
+            <label class="form-check-label" for="inlineRadio5">5</label>
+        </div>
+        </div>
+        <div class="mb-3 mt-3">
+            <label for="review"> Your previous review was: {{ review.review }}</label> <br>
+            <textarea class="form-control" id="review" name="review"
+                placeholder=" {{ review.review }}"></textarea>
+        </div>
+        <button class="btn btn-primary" id="submit" name="action" value="submit">Update</button>
+        <button class="btn btn-danger" id="delete" name="action" vallue="delete">Delete</button>
+
+    </div>
+</form>
+
+{% endfor %}
+{% endif %}
+
+{% endblock %}
