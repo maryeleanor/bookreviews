@@ -87,20 +87,35 @@ def book_reviews(book_id):
         "SELECT * FROM reviews WHERE book_id = :book_id", {
             "book_id": book.id}).fetchall()
 
-    user = db.execute("SELECT * FROM users WHERE id = :id",
-                      {"id": session["user_id"]}).fetchone()
-    username = user.username.capitalize()
+    usernames = []
+    for review in reviews:
+        user = db.execute("SELECT * FROM users WHERE id = :id",
+                    {"id": review.user_id}).fetchone()
+        usernames.append(user.username.capitalize())
 
     res = requests.get("https://www.goodreads.com/book/review_counts.json",
                        params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": book.isbn})
     result = res.json()
     goodreads_book = result['books']
     ratings = (float(goodreads_book[0]['average_rating'])/5) * 100
-    return book, reviews, username, goodreads_book, ratings
+     
+    if session.get("user_id") is None:
+        current_user = 0;
+    else:
+        user = db.execute("SELECT * FROM users WHERE id = :id",
+                        {"id": session["user_id"]}).fetchall()
+        current_user = user[0].username.capitalize()
+
+    review_input = True
+    for name in usernames:
+        if name == current_user:
+            review_input = False
+
+    review_results = zip(reviews, usernames)
+    return book, review_results, goodreads_book, ratings, review_input, current_user
 
 
 @app.route("/", methods=["GET", "POST"])
-@login_required
 def index():
     # if user clicked search
     if request.method == "POST":
@@ -122,9 +137,6 @@ def index():
         return render_template('index.html', books_result=books_result)
 
     else:
-        # user = db.execute("SELECT * FROM users WHERE id = :id", {"id":session["user_id"]}).fetchall()
-        # username = user[0].username.capitalize()
-
         # render search homepage
         return render_template('index.html')
 
@@ -133,64 +145,76 @@ def index():
 @app.route('/book/<int:book_id>', methods=['GET', 'POST'])
 def book(book_id):
     if request.method == "POST":
-        review = request.form.get("review")
-        rating = int(request.form['options'])
+        review = request.form["review"]
+        try:
+            rating = int(request.form['options'])
+        except:
+            rating = None  
 
         if not review and not rating:
             return apology("you didn't provide a rating or review", 404)
 
         # check if user has already reviewed this book, if so send them to update review
-        review = db.execute("SELECT * FROM reviews WHERE user_id = :user_id", {
+        reviews = db.execute("SELECT * FROM reviews WHERE user_id = :user_id", {
             "user_id": session["user_id"]}).fetchone()
-        if review:
-            update = "You've already submitted a review. Want to update it?"
-            return redirect(url_for('review', review_id=review.id, update=update))
+      
+        if reviews:
+            db.execute("UPDATE reviews (:review, :rating) WHERE id = :id", {
+                "review": review, "rating": rating, "id": reviews.id})
+        
+        else:
+            # otherwise submit review into db
+            db.execute("INSERT INTO reviews (review, rating, book_id, user_id) VALUES (:review, :rating, :book_id, :user_id)", {
+                    "review": review, "rating": rating, "book_id": book_id, "user_id": session["user_id"]})
+            db.commit()
 
-        # otherwise submit review into db
-        db.execute("INSERT INTO reviews (review, rating, book_id, user_id) VALUES (:review, :rating, :book_id, :user_id)", {
-                   "review": review, "rating": rating, "book_id": book_id, "user_id": session["user_id"]})
-        db.commit()
-
-        # then query db for this book's details and render page        
-        book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
-        return render_template('book.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
-
-    else:
-        # query db for this book's details and render page
-        book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
-        return render_template('book.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
+    # query db for this book's details and render page
+    b, rr, gr, r, ri, cu = book_reviews(book_id)
+    return render_template('book.html', book=b, review_results=rr, goodreads_book=gr, ratings=r, review_input=ri, current_user=cu)
 
 
 @app.route('/review/<int:review_id>', methods=['GET', 'POST'])
 def review(review_id):
     reviews = db.execute("SELECT * FROM reviews WHERE id = :review_id", {
-        "review_id": review_id}).fetchall()
-    review = reviews[0]
-    book_id = review.book_id
+        "review_id": review_id}).fetchone()
+    book_id = reviews.book_id
 
     if request.method == "POST":
         if request.form['action'] == 'delete':
-            db.execute("DELETE FROM reviews WHERE id = review_id", {
-                "review_id": review_id})
+            db.execute("DELETE FROM reviews WHERE id = id", {
+                "id": review_id})
             db.commit()
         
-        if request.form['action'] == 'submit':
-            review = request.form.get("review")
-            if request.form['options']:
-                rating = int(request.form['options'])
+        if request.form['action'] == 'update':
+            review = request.form["review"]
             
-            db.execute("UPDATE reviews (review, rating) WHERE id = review_id VALUES (:review, :rating, :review_id)", {
-                    "review": review, "rating": rating, "review_id": review_id})
+            try:
+                rating = int(request.form['options'])
+            except:
+                rating = None
+
+            if not review:
+                db.execute("UPDATE reviews SET rating = :rating WHERE id = :id", {
+                    "rating": rating, "id": review_id})
+
+            elif rating == None: 
+                db.execute("UPDATE reviews SET review = :review WHERE id = :id", {
+                "review": review, "id": review_id})
+
+            else:        
+                db.execute("UPDATE reviews SET review = :review, rating= :rating WHERE id = :id", {
+                    "review": review, "rating": rating, "id": review_id})
+
             db.commit()
 
         # query db for this book's details and render page
-        book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
-        return render_template('book.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
+        b, rr, gr, r, ri, cu = book_reviews(book_id)
+        return render_template('book.html', book=b, review_results=rr, goodreads_book=gr, ratings=r, review_input=ri, current_user=cu)
 
     else:
         # query db for this book's details and render page
-        book, reviews, username, goodreads_book, ratings = book_reviews(book_id)
-        return render_template('review.html', book=book, reviews=reviews, username=username, goodreads_book=goodreads_book, ratings=ratings)
+        b, rr, gr, r, ri, cu = book_reviews(book_id)
+        return render_template('review.html', book=b, review_results=rr, goodreads_book=gr, ratings=r, review_input=ri, current_user=cu)
 
 
 
