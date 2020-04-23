@@ -111,7 +111,10 @@ def book_reviews(book_id):
         if name == current_user:
             review_input = False
 
-    review_results = zip(reviews, usernames)
+    if len(reviews) != 0:
+        review_results = zip(reviews, usernames)
+    else:
+         review_results = 0    
     return book, review_results, goodreads_book, ratings, review_input, current_user
 
 
@@ -141,7 +144,6 @@ def index():
         return render_template('index.html')
 
 
-
 @app.route('/book/<int:book_id>', methods=['GET', 'POST'])
 def book(book_id):
     if request.method == "POST":
@@ -155,11 +157,11 @@ def book(book_id):
             return apology("you didn't provide a rating or review", 404)
 
         # check if user has already reviewed this book, if so send them to update review
-        reviews = db.execute("SELECT * FROM reviews WHERE user_id = :user_id", {
-            "user_id": session["user_id"]}).fetchone()
+        reviews = db.execute("SELECT * FROM reviews WHERE book_id = :book_id AND user_id = :user_id", {
+            "book_id": book_id, "user_id": session["user_id"]}).fetchone()
       
         if reviews:
-            db.execute("UPDATE reviews (:review, :rating) WHERE id = :id", {
+            db.execute("UPDATE reviews SET review = :review, rating= :rating WHERE id = :id", {
                 "review": review, "rating": rating, "id": reviews.id})
         
         else:

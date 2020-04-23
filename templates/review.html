@@ -65,7 +65,7 @@
                 <br> Your previous review: {{ review.review }}
             </div>
             <button class="btn btn-primary" id="submit" name="action" value="update"> Update</button>
-            <button class="btn btn-danger" id="delete" name="action" value="delete"> Delete</button>
+            <button class="btn btn-danger" id="delete" name="action" value="delete" onclick="confirmDelete()"> Delete</button>
 
         </div>
     </form>
@@ -73,5 +73,12 @@
 
     {% endif %}
 {% endfor %} 
+
+<script>
+    
+    function confirmDelete() {
+        confirm("Are you Sure you want to Delete this review?");
+}
+</script>
 
 {% endblock %}
