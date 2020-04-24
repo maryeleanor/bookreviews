@@ -11,7 +11,8 @@
     <!-- documentation at http://getbootstrap.com/docs/4.1/, alternative themes at https://bootswatch.com/ -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- https://favicon.io/emoji-favicons/money-mouth-face/ -->
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap" rel="stylesheet">
+
     <link href="/static/favicon.ico" rel="icon">
     <link href="/static/style.css" rel="stylesheet">
 
@@ -24,9 +25,10 @@
 </head>
 
 <body>
+    <div class="content">
 
     <nav class="navbar navbar-expand-md navbar-light bg-light border">
-        <a class="navbar-brand green" href="/">Bookreads</a>
+        <a class="navbar-brand" href="/"> <img src="/static/books.png" alt="books icon"> Bookreads</a>
         <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler"
             data-target="#navbar" data-toggle="collapse" type="button">
             <span class="navbar-toggler-icon"></span>
@@ -56,8 +58,10 @@
     <main class="container p-5">
         {% block main %}{% endblock %}
     </main>
-
-    <footer class="small text-center text-muted">
+    
+    </div>
+    
+    <footer class="text-center text-muted">
         Book ratings provided by <a href="https://www.goodreads.com/api/keys">Goodreads API</a>.  
         This web app was created by <a href="http://marycasserly.com">Mary</a> as an assignment for 
         <a href="https://cs50.harvard.edu/web/">Harvard's CS50’s Web Programming with Python and JavaScript course</a>.

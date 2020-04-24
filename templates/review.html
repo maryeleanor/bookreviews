@@ -33,11 +33,11 @@
     {% if user == current_user %}
 
     <form action="{{ url_for('review', review_id=review.id) }}" method="post" class="m-2">
-        <div class="form-group">
+        <div class="form-group" id="rating">
             <h4> Update your review of {{ book.title }} </h4>
             <div class="mt-3">
             <p style="display:inline"> Rating </p> &nbsp;
-            <div class="form-check form-check-inline">
+            <div class="form-check form-check-inline" >
                 <input class="form-check-input" type="radio" name="options" id="inlineRadio1" value="1">
                 <label class="form-check-label" for="inlineRadio1">1</label>
             </div>
@@ -64,7 +64,7 @@
                     placeholder="{{ review.review }}"></textarea>
                 <br> Your previous review: {{ review.review }}
             </div>
-            <button class="btn btn-primary" id="submit" name="action" value="update"> Update</button>
+            <button class="btn btn-primary" id="submit" name="action" value="update" onclick="confirmUpdate()"> Update</button>
             <button class="btn btn-danger" id="delete" name="action" value="delete" onclick="confirmDelete()"> Delete</button>
 
         </div>
@@ -75,10 +75,13 @@
 {% endfor %} 
 
 <script>
-    
+    function confirmUpdate() {
+            confirm("Are you sure about your review update?");
+        }
+
     function confirmDelete() {
-        confirm("Are you Sure you want to Delete this review?");
-}
+        confirm("Are you sure you want to Delete this review?");
+    }
 </script>
 
 {% endblock %}

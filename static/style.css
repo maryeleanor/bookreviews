@@ -1,14 +1,21 @@
-nav .navbar-brand
-{
-    /* size for brand */
-    font-size: xx-large;
+
+html, body {
+  height: 100%;
+  font-family: 'Raleway', sans-serif;
 }
 
-/* color for brand */
-.green
-{
-    color: #2e944b;
+body {
+  display: flex;
+  flex-direction: column;
+} 
+
+.content {
+      flex: 1 0 auto;
 }
+
+nav img {
+    max-height: 90px;
+} 
 
 main .form-control
 {
@@ -42,6 +49,6 @@ main img
     padding-left:200px;
 }
 
-footer { 
-    
+footer {
+  flex-shrink: 0;
 }

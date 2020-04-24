@@ -26,7 +26,6 @@ db = scoped_session(sessionmaker(bind=engine))
 
 # Goodreads API key and secret
 # key: DchANaDeTrPFG7BRpUBZIw
-# secret: t5VRb1Uf3nJXZeb489i5Y4HkIuADwEV0nEtbjcxhnd4
 
 
 def login_required(f):
@@ -38,17 +37,15 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get("user_id") is None:
-            return redirect("/register")
+            return redirect("/login")
         return f(*args, **kwargs)
     return decorated_function
 
 
 def apology(message, code=400):
-    """Render message as an apology to user."""
     def escape(s):
         """
         Escape special characters.
-
         https://github.com/jacebrowning/memegen#special-characters
         """
         for old, new in [("-", "--"), (" ", "-"), ("_", "__"), ("?", "~q"),
@@ -59,14 +56,16 @@ def apology(message, code=400):
 
 
 def search(book):
+    #format search string for database LIKE search
     book = "%{}%".format(book)
-    books = db.execute("SELECT * FROM books WHERE isbn ILIKE :book OR title ILIKE :book OR author ILIKE :book ORDER BY year DESC", {
+    books = db.execute("SELECT * FROM books WHERE isbn ILIKE :book OR title ILIKE :book OR author ILIKE :book ORDER BY year DESC LIMIT 10", {
         "book": book}).fetchall()
 
     if not books:
         books_result = None
         return books_result
 
+    #create list and query goodreads for same books as above to add to list
     goodreads = []
     for book in books:
             res = requests.get("https://www.goodreads.com/book/review_counts.json",
@@ -74,31 +73,40 @@ def search(book):
             result = res.json()
             goodreads.append(result['books'])
 
+    #zip lists together to iterate through on index page
     books_result = zip(books, goodreads)
     return books_result
 
 
 def book_reviews(book_id):
+    # query db for book details
     book = db.execute(
         "SELECT * FROM books WHERE id = :book_id", {
             "book_id": book_id}).fetchone()
+    
+    if not book:
+        return None
 
+    # query review table with current book id
     reviews = db.execute(
         "SELECT * FROM reviews WHERE book_id = :book_id", {
-            "book_id": book.id}).fetchall()
+            "book_id": book.id}).fetchall()            
 
+    # create list to display usernames of who left reviews
     usernames = []
     for review in reviews:
         user = db.execute("SELECT * FROM users WHERE id = :id",
                     {"id": review.user_id}).fetchone()
         usernames.append(user.username.capitalize())
 
+    # query goodreads api for book ratings and details
     res = requests.get("https://www.goodreads.com/book/review_counts.json",
                        params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": book.isbn})
     result = res.json()
     goodreads_book = result['books']
     ratings = (float(goodreads_book[0]['average_rating'])/5) * 100
-     
+
+    # check if review was left by current user so they can have option of editing it 
     if session.get("user_id") is None:
         current_user = 0;
     else:
@@ -106,11 +114,13 @@ def book_reviews(book_id):
                         {"id": session["user_id"]}).fetchall()
         current_user = user[0].username.capitalize()
 
+    # if user has already left a review for this book, don't show review form
     review_input = True
     for name in usernames:
         if name == current_user:
             review_input = False
 
+    # zip reviews and usernames lists to display together on page
     if len(reviews) != 0:
         review_results = zip(reviews, usernames)
     else:
@@ -140,12 +150,13 @@ def index():
         return render_template('index.html', books_result=books_result)
 
     else:
-        # render search homepage
+        # render homepage with search box
         return render_template('index.html')
 
 
 @app.route('/book/<int:book_id>', methods=['GET', 'POST'])
 def book(book_id):
+    # if user filled in the review form
     if request.method == "POST":
         review = request.form["review"]
         try:
@@ -171,45 +182,67 @@ def book(book_id):
             db.commit()
 
     # query db for this book's details and render page
-    b, rr, gr, r, ri, cu = book_reviews(book_id)
-    return render_template('book.html', book=b, review_results=rr, goodreads_book=gr, ratings=r, review_input=ri, current_user=cu)
+    result = book_reviews(book_id)
+    if not result:
+        return apology("Sorry, no such book in our Database", 404)
+    
+    else: 
+        b, rr, gr, r, ri, cu = book_reviews(book_id)
+        return render_template('book.html', book=b, review_results=rr, goodreads_book=gr, ratings=r, review_input=ri, current_user=cu)
 
 
 @app.route('/review/<int:review_id>', methods=['GET', 'POST'])
+@login_required
 def review(review_id):
+    # query db for this review
     reviews = db.execute("SELECT * FROM reviews WHERE id = :review_id", {
         "review_id": review_id}).fetchone()
+
+    # return error if no review found    
+    if not reviews:
+        return apology("Sorry, no such review in our Database", 404)
+
+    #assign book id from query above to search for all details to display on page   
     book_id = reviews.book_id
 
+    # if user arrived via POST, wanting to update their review
     if request.method == "POST":
+        
+        #delete if they clicked delete
         if request.form['action'] == 'delete':
             db.execute("DELETE FROM reviews WHERE id = id", {
                 "id": review_id})
             db.commit()
-        
+
+        # update if they clicked update
         if request.form['action'] == 'update':
             review = request.form["review"]
             
+            #get rating from option click or keep as none
             try:
                 rating = int(request.form['options'])
             except:
                 rating = None
 
+            # update db with rating only
             if not review:
                 db.execute("UPDATE reviews SET rating = :rating WHERE id = :id", {
                     "rating": rating, "id": review_id})
 
+            # or update db with review only    
             elif rating == None: 
                 db.execute("UPDATE reviews SET review = :review WHERE id = :id", {
                 "review": review, "id": review_id})
 
+            # otherwise update db with both
             else:        
                 db.execute("UPDATE reviews SET review = :review, rating= :rating WHERE id = :id", {
                     "review": review, "rating": rating, "id": review_id})
 
+            # commit db update
             db.commit()
 
-        # query db for this book's details and render page
+        # query db for updated book details and render page
         b, rr, gr, r, ri, cu = book_reviews(book_id)
         return render_template('book.html', book=b, review_results=rr, goodreads_book=gr, ratings=r, review_input=ri, current_user=cu)
 
@@ -265,48 +298,98 @@ def register():
 
 
 @app.route("/login", methods=["GET", "POST"])
-def login():
-    """Log user in"""
-
+def login(): 
     # Forget any user_id
     session.clear()
 
+    #if user clicked login
     if request.method == "POST":
 
+        #get username from form
         username = request.form.get("username")
         
-        # Ensure username was submitted
-        if not request.form.get("username"):
+        # ensure username was submitted
+        if not username:
             return apology("must provide username", 403)
 
-        # Ensure password was submitted
+        # ensure password was submitted
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
-        # Query database for username
+        # query db for username
         rows = db.execute("SELECT * FROM users WHERE username = :username", {"username":username}).fetchall()
 
-        # Ensure username exists and password is correct
+        # ensure username exists and password is correct
         if not rows or not check_password_hash(rows[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
-        # Remember which user has logged in
+        # remember which user has logged in
         session["user_id"] = rows[0]["id"]
         
-        # Redirect user to home page
+        # redirect user to home page
         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
+    # user reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("login.html")
 
 
 @app.route("/logout")
+@login_required
 def logout():
-    """Log user out"""
-
     # Forget any user_id
     session.clear()
 
-    # Redirect user to login form
+    # Redirect user to homepage
     return redirect("/")
+
+
+def api_search(isbn):
+    #cast isbn to string
+    isbn = str(isbn)
+
+    #return isbn to 10 digits 
+    isbn = isbn.zfill(10)
+
+    #query db for isbn
+    book = db.execute("SELECT * FROM books WHERE isbn LIKE :isbn", {
+        "isbn": isbn}).fetchone()
+
+    #if none found, return none
+    if not book:
+        goodreads = None
+        return book, goodreads
+    
+    #query goodreads for isbn
+    res = requests.get("https://www.goodreads.com/book/review_counts.json",
+                        params={"key": "DchANaDeTrPFG7BRpUBZIw", "isbns": book.isbn})
+    result = res.json()
+    goodreads = result['books']
+
+    #return data for api
+    return book, goodreads
+
+
+
+@app.route('/api/<int:isbn>', methods=['GET'])
+def book_api(isbn):
+
+    # query db and goodreads for isbn given
+    book, goodreads = api_search(isbn)
+
+    #if none returned, pass error
+    if book is None:
+        return jsonify({"error": "Invalid ISBN"}), 404
+    
+    #return json object with book details
+    return jsonify({
+        "title": book.title,
+        "author": book.author,
+        "year": book.year,
+        "isbn": book.isbn,
+        "review_count": goodreads[0]['work_reviews_count'],
+        "average_score": goodreads[0]['average_rating']
+    })
+
+
+
