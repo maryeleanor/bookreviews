@@ -345,9 +345,6 @@ def logout():
 
 
 def api_search(isbn):
-    #cast isbn to string
-    isbn = str(isbn)
-
     #return isbn to 10 digits 
     isbn = isbn.zfill(10)
 
@@ -371,7 +368,7 @@ def api_search(isbn):
 
 
 
-@app.route('/api/<int:isbn>', methods=['GET'])
+@app.route('/api/<string:isbn>', methods=['GET'])
 def book_api(isbn):
 
     # query db and goodreads for isbn given
