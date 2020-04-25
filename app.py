@@ -210,7 +210,8 @@ def review(review_id):
         
         #delete if they clicked delete
         if request.form['action'] == 'delete':
-            db.execute("DELETE FROM reviews WHERE id = id", {
+            print(review_id)
+            db.execute("DELETE FROM reviews WHERE id = :id", {
                 "id": review_id})
             db.commit()
 
