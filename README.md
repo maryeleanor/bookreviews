@@ -1,6 +1,6 @@
 # Bookreads
 
-##<a href="https://docs.cs50.net/web/2020/x/projects/1/project1.html" target="_blank" style="font-weight:bold;">Project 1</a> for CS50 Web Programming with Python and JavaScript
+### <a href="https://docs.cs50.net/web/2020/x/projects/1/project1.html" target="_blank" style="font-weight:bold;">Project 1</a> for CS50 Web Programming with Python and JavaScript
 
 ---
 
